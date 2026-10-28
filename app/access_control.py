@@ -1,14 +1,12 @@
-"""
-B2, part 1 — implement can_access_screening_report().
-
-Read README.md's domain model first. A ScreeningReport belongs to a Tenant, a Tenant belongs to
-a Property, and a Property belongs to a LandlordAccount. A PropertyManager is scoped to exactly
-one LandlordAccount.
-
-A PropertyManager may view a ScreeningReport only if that report's tenant lives in a property
-under the PropertyManager's own landlord account.
-"""
 from app.models import PropertyManager, ScreeningReport, Property, Tenant
+
+
+def _unique(records, record_id):
+    """Return the single record with this id, or None if absent or ambiguous."""
+    if record_id is None:
+        return None
+    matches = [r for r in records if r.id == record_id]
+    return matches[0] if len(matches) == 1 else None
 
 
 def can_access_screening_report(
@@ -18,13 +16,19 @@ def can_access_screening_report(
     properties: list[Property],
     tenants: list[Tenant],
 ) -> bool:
-    """
-    actor: the PropertyManager requesting access
-    report: the ScreeningReport they're trying to view
-    properties: all known Property records
-    tenants: all known Tenant records
+    # The boundary is the landlord account, not the tenant or property.
+    # Fail closed on every missing, ambiguous or unresolvable link.
+    if actor is None or report is None:
+        return False
+    if actor.landlord_account_id is None:
+        return False
 
-    Return True if actor may view report, False otherwise. Fail closed — if anything needed to
-    make this determination is missing (tenant not found, property not found), return False.
-    """
-    raise NotImplementedError("Implement this.")
+    tenant = _unique(tenants, report.tenant_id)
+    if tenant is None:
+        return False
+
+    prop = _unique(properties, tenant.property_id)
+    if prop is None or prop.landlord_account_id is None:
+        return False
+
+    return prop.landlord_account_id == actor.landlord_account_id

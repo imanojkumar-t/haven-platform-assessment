@@ -1,31 +1,53 @@
 """
-B2, part 2 — implement the cost-tagging check.
+Cost-tagging check.
 
-Read fixtures/plan.json for the shape of a `terraform show -json` plan: a `resource_changes`
-list, where each entry has a `type`, an `address`, and `change.after.tags`.
-
-Implement check_plan() so it:
-  - Looks at every resource being created or changed (skip anything not in
-    change.actions, e.g. a pure "no-op" / "read" change).
-  - Fails (returns a non-zero exit code) if the resource is missing `landlord_account_id` in
-    its tags — this is the real billing unit. Do NOT check for `tenant_id`; that's the wrong
-    key and is a trap some resources are deliberately tagged with instead.
-  - Is idempotent: running this twice against the same plan file produces the same result,
-    with no duplicate output and no flipped pass/fail.
-  - Prints which specific resource address(es) are missing the tag.
-
-Run manually: python scripts/cost_tag_check.py fixtures/plan.json
+Idempotency key: (resource address, required tag key). Violations are stored
+in a dict keyed that way, sorted before printing, with no timestamps, so an
+unchanged plan always gives identical output and the same exit code.
 """
 import json
 import sys
 
+REQUIRED_TAG = "landlord_account_id"
+CHECKED_ACTIONS = {"create", "update"}
+
+
+def _effective_tags(after):
+    return {**(after.get("tags_all") or {}), **(after.get("tags") or {})}
+
 
 def check_plan(plan_path: str) -> int:
-    """
-    Returns an exit code: 0 if every taggable resource being created/changed has
-    `landlord_account_id`, non-zero otherwise.
-    """
-    raise NotImplementedError("Implement this.")
+    try:
+        with open(plan_path) as f:
+            plan = json.load(f)
+    except (OSError, json.JSONDecodeError) as exc:
+        print(f"ERROR: cannot read plan {plan_path}: {exc}", file=sys.stderr)
+        return 2
+
+    violations = {}
+    checked = 0
+    for rc in plan.get("resource_changes", []):
+        if rc.get("mode", "managed") != "managed":
+            continue
+        change = rc.get("change") or {}
+        if not CHECKED_ACTIONS & set(change.get("actions") or []):
+            continue
+        after = change.get("after")
+        if not isinstance(after, dict) or ("tags" not in after and "tags_all" not in after):
+            continue
+        checked += 1
+        value = _effective_tags(after).get(REQUIRED_TAG)
+        if not (isinstance(value, str) and value.strip()):
+            violations[(rc["address"], REQUIRED_TAG)] = rc.get("type", "")
+
+    if violations:
+        print(f"FAIL: {len(violations)} resource(s) missing '{REQUIRED_TAG}' tag:")
+        for (address, _tag), rtype in sorted(violations.items()):
+            print(f"  - {address} ({rtype})")
+        return 1
+
+    print(f"OK: {checked} taggable resource(s) checked, all have '{REQUIRED_TAG}'.")
+    return 0
 
 
 if __name__ == "__main__":
