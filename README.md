@@ -40,3 +40,8 @@ for how to use it.
 ## here is the link to the screen recording 
 
 https://drive.google.com/file/d/1hyoVPFWW7hpdqlLy3igWdA88WMe6K2oC/view?usp=sharing
+
+
+## here is the link of explaining heaven multi tenant real estate platform assessment
+
+https://drive.google.com/file/d/1dYHLcL0f0DOKfak2ylItE0OKsu4cLQX_/view?usp=drive_link
