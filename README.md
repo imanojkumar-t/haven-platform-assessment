@@ -45,3 +45,7 @@ https://drive.google.com/file/d/1hyoVPFWW7hpdqlLy3igWdA88WMe6K2oC/view?usp=shari
 ## here is the link of explaining heaven multi tenant real estate platform assessment
 
 https://drive.google.com/file/d/1dYHLcL0f0DOKfak2ylItE0OKsu4cLQX_/view?usp=drive_link
+
+## with audio 
+
+https://drive.google.com/file/d/1sYW_8BYeGsCksxpft8g8twbni7vXNnR7/view?usp=sharing
